@@ -16,7 +16,9 @@ const txtReferralId = document.getElementById('txtReferralId');
 const txtCompany = document.getElementById('txtCompany');
 const txtEmployeeName = document.getElementById('txtEmployeeName');
 const txtLinkedIn = document.getElementById('txtLinkedIn');
+const txtJobLink = document.getElementById('txtJobLink');
 const selStatus = document.getElementById('selStatus');
+const selAppliedEmail = document.getElementById('selAppliedEmail');
 const txtMessage = document.getElementById('txtMessage');
 
 // Control Elements
@@ -80,7 +82,9 @@ function loadData() {
         company: 'Stripe',
         name: 'Alex Rivera',
         linkedin: 'https://linkedin.com/in/alex-rivera-stripe-demo',
+        jobLink: 'https://stripe.com/jobs/senior-core-platform',
         status: 'secured',
+        appliedEmail: 'kolliparamithra84@gmail.com',
         message: "Hey Sarah, I saw you recently joined the platform team at Stripe. I've been working on scaling distributed ledgers at my current firm and would love to chat briefly about how Stripe approaches real-time transactions. I'd appreciate it if you could share a referral for the Senior Core Platform role!",
         createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(), // 5 days ago
         updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString()
@@ -90,7 +94,9 @@ function loadData() {
         company: 'Google',
         name: 'Jessica Chen',
         linkedin: 'https://linkedin.com/in/jessica-chen-google-demo',
+        jobLink: 'https://google.com/about/careers/devinfra',
         status: 'interviewing',
+        appliedEmail: 'vmkmithra30@gmail.com',
         message: "Hi Jess! Hope you're doing well. I noticed Google is expanding its developer infrastructure division in Seattle. Since we worked together on the Cloud Migration project at AWS, I know you have a great perspective there. If you think my skill set aligns, I'd be incredibly grateful for a referral to the DevInfra Systems Specialist position.",
         createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString(), // 14 days ago
         updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString()
@@ -100,7 +106,9 @@ function loadData() {
         company: 'Netflix',
         name: 'Marcus Vance',
         linkedin: 'https://linkedin.com/in/marcus-vance-netflix-demo',
+        jobLink: '',
         status: 'contacted',
+        appliedEmail: '',
         message: "Hi Marcus, I've been following Netflix's open-source contributions to microservice orchestration for a while. I'm applying for the Senior Backend Platform engineer role. I would love to connect and get your advice on what Netflix looks for in senior systems talent, and possibly a referral. Thanks!",
         createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(), // 1 day ago
         updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString()
@@ -266,6 +274,29 @@ function createCardElement(r) {
        </a>`
     : '';
 
+  // Prepare Job Link element
+  const hasJobLink = r.jobLink && r.jobLink.trim() !== '';
+  const jobLinkButton = hasJobLink 
+    ? `<a href="${escapeHTML(r.jobLink)}" target="_blank" rel="noopener noreferrer" class="card-btn" title="Open Job Posting">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+           <polyline points="15 3 21 3 21 9"></polyline>
+           <line x1="10" y1="14" x2="21" y2="3"></line>
+         </svg>
+       </a>`
+    : '';
+
+  // Prepare Applied Email element
+  const hasAppliedEmail = r.appliedEmail && r.appliedEmail.trim() !== '';
+  const appliedEmailMarkup = hasAppliedEmail
+    ? `<span class="applied-email-info" title="Applied via ${escapeHTML(r.appliedEmail)}">
+         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline; margin-top:-2.5px; vertical-align:middle; margin-right:4px;">
+           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+           <polyline points="22,6 12,13 2,6"></polyline>
+         </svg>${escapeHTML(r.appliedEmail)}
+       </span>`
+    : '';
+
   card.innerHTML = `
     <div class="card-header">
       <div class="card-company-info">
@@ -277,6 +308,7 @@ function createCardElement(r) {
           </svg>
           ${escapeHTML(r.name)}
         </span>
+        ${appliedEmailMarkup}
       </div>
       <span class="status-badge ${statusInfo.class}">${statusInfo.text}</span>
     </div>
@@ -296,6 +328,7 @@ function createCardElement(r) {
     <div class="card-actions">
       <span class="card-meta">Updated: ${formattedDate}</span>
       <div class="external-links">
+        ${jobLinkButton}
         ${linkedinButton}
         <button class="card-btn btn-edit" title="Edit Referral details">
           <svg viewBox="0 0 24 24" fill="currentColor">
@@ -331,7 +364,9 @@ function openModal(id = null) {
       txtCompany.value = ref.company;
       txtEmployeeName.value = ref.name;
       txtLinkedIn.value = ref.linkedin || '';
+      txtJobLink.value = ref.jobLink || '';
       selStatus.value = ref.status;
+      selAppliedEmail.value = ref.appliedEmail || '';
       txtMessage.value = ref.message;
       modalTitleText.textContent = 'Edit Referral Details';
     }
@@ -355,7 +390,9 @@ function handleFormSubmit(e) {
   const companyVal = txtCompany.value.trim();
   const nameVal = txtEmployeeName.value.trim();
   const linkedinVal = txtLinkedIn.value.trim();
+  const jobLinkVal = txtJobLink.value.trim();
   const statusVal = selStatus.value;
+  const appliedEmailVal = selAppliedEmail.value;
   const messageVal = txtMessage.value.trim();
   
   if (!companyVal || !nameVal || !messageVal) {
@@ -374,7 +411,9 @@ function handleFormSubmit(e) {
         company: companyVal,
         name: nameVal,
         linkedin: linkedinVal,
+        jobLink: jobLinkVal,
         status: statusVal,
+        appliedEmail: appliedEmailVal,
         message: messageVal,
         updatedAt: now
       };
@@ -387,7 +426,9 @@ function handleFormSubmit(e) {
       company: companyVal,
       name: nameVal,
       linkedin: linkedinVal,
+      jobLink: jobLinkVal,
       status: statusVal,
+      appliedEmail: appliedEmailVal,
       message: messageVal,
       createdAt: now,
       updatedAt: now
