@@ -2,6 +2,7 @@
 
 // State Management
 let referrals = [];
+let viewMode = 'grid'; // 'grid' or 'list'
 
 // DOM Elements
 const referralsGridContainer = document.getElementById('referralsGridContainer');
@@ -10,6 +11,8 @@ const referralModal = document.getElementById('referralModal');
 const referralForm = document.getElementById('referralForm');
 const modalTitleText = document.getElementById('modalTitleText');
 const toastContainer = document.getElementById('toastContainer');
+const btnGridView = document.getElementById('btnGridView');
+const btnListView = document.getElementById('btnListView');
 
 // Form Inputs
 const txtReferralId = document.getElementById('txtReferralId');
@@ -59,7 +62,14 @@ const statusConfig = {
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
   setupEventListeners();
-  updateUI();
+  
+  // Initialize view mode from local storage
+  const storedMode = localStorage.getItem('referral_view_mode');
+  if (storedMode) {
+    setViewMode(storedMode);
+  } else {
+    setViewMode('grid');
+  }
 });
 
 // ----------------------------------------------------
@@ -139,11 +149,32 @@ function setupEventListeners() {
   txtSearch.addEventListener('input', debounce(updateUI, 200));
   selStatusFilter.addEventListener('change', updateUI);
   selCompanyFilter.addEventListener('change', updateUI);
+
+  // View Mode Toggles
+  btnGridView.addEventListener('click', () => setViewMode('grid'));
+  btnListView.addEventListener('click', () => setViewMode('list'));
   
   // Import / Export
   btnExport.addEventListener('click', exportData);
   btnImport.addEventListener('click', () => importFileInput.click());
   importFileInput.addEventListener('change', importData);
+}
+
+function setViewMode(mode) {
+  viewMode = mode;
+  localStorage.setItem('referral_view_mode', mode);
+  
+  if (mode === 'grid') {
+    btnGridView.classList.add('active');
+    btnListView.classList.remove('active');
+    referralsGridContainer.classList.remove('list-view-mode');
+  } else {
+    btnGridView.classList.remove('active');
+    btnListView.classList.add('active');
+    referralsGridContainer.classList.add('list-view-mode');
+  }
+  
+  updateUI();
 }
 
 // ----------------------------------------------------
@@ -206,9 +237,14 @@ function populateCompanyFilter() {
 }
 
 function renderReferralCards() {
-  // Clear the cards container, keeping the empty state element reference
+  // Clear the cards container and any list table that might exist
   const cards = document.querySelectorAll('.referral-card');
   cards.forEach(card => card.remove());
+  
+  const existingTable = document.querySelector('.table-responsive');
+  if (existingTable) {
+    existingTable.remove();
+  }
   
   // Apply Search & Filters
   const searchQuery = txtSearch.value.trim().toLowerCase();
@@ -245,10 +281,42 @@ function renderReferralCards() {
   } else {
     emptyStateEl.style.display = 'none';
     
-    filtered.forEach(referral => {
-      const card = createCardElement(referral);
-      referralsGridContainer.appendChild(card);
-    });
+    if (viewMode === 'grid') {
+      filtered.forEach(referral => {
+        const card = createCardElement(referral);
+        referralsGridContainer.appendChild(card);
+      });
+    } else {
+      // Create and mount List Table layout
+      const tableWrapper = document.createElement('div');
+      tableWrapper.className = 'table-responsive';
+      
+      const table = document.createElement('table');
+      table.className = 'referral-table';
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Referrer</th>
+            <th>Status</th>
+            <th>Applied Email</th>
+            <th>Referral Message</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="referralTableBody"></tbody>
+      `;
+      
+      tableWrapper.appendChild(table);
+      referralsGridContainer.appendChild(tableWrapper);
+      
+      const tbody = document.getElementById('referralTableBody');
+      filtered.forEach(referral => {
+        const row = createTableRowElement(referral);
+        tbody.appendChild(row);
+      });
+    }
   }
 }
 
@@ -297,6 +365,12 @@ function createCardElement(r) {
        </span>`
     : '';
 
+  // Check if message requires clamping and a "Read More" button
+  const needsReadMore = r.message.split('\n').length > 3 || r.message.length > 150;
+  const readMoreBtnMarkup = needsReadMore 
+    ? `<button class="btn-read-more" onclick="toggleMessageExpand('${r.id}', this)">Read More</button>`
+    : '';
+
   card.innerHTML = `
     <div class="card-header">
       <div class="card-company-info">
@@ -322,7 +396,8 @@ function createCardElement(r) {
           </svg>
         </button>
       </div>
-      <div class="message-content">${escapeHTML(r.message)}</div>
+      <div class="message-content" id="msg-${r.id}">${escapeHTML(r.message)}</div>
+      ${readMoreBtnMarkup}
     </div>
     
     <div class="card-actions">
@@ -350,6 +425,81 @@ function createCardElement(r) {
   
   return card;
 }
+
+function createTableRowElement(r) {
+  const tr = document.createElement('tr');
+  tr.dataset.id = r.id;
+  
+  const statusInfo = statusConfig[r.status] || { text: r.status, class: 'contacted' };
+  const formattedDate = new Date(r.updatedAt).toLocaleDateString(undefined, { 
+    month: 'short', 
+    day: 'numeric'
+  });
+  
+  const hasLinkedIn = r.linkedin && r.linkedin.trim() !== '';
+  const linkedinIcon = hasLinkedIn 
+    ? `<a href="${escapeHTML(r.linkedin)}" target="_blank" rel="noopener noreferrer" style="color: var(--text-muted); margin-left: 6px;" title="LinkedIn Profile">
+         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle;">
+           <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+         </svg>
+       </a>`
+    : '';
+
+  const hasJobLink = r.jobLink && r.jobLink.trim() !== '';
+  const jobLinkIcon = hasJobLink 
+    ? `<a href="${escapeHTML(r.jobLink)}" target="_blank" rel="noopener noreferrer" style="color: var(--text-muted); margin-left: 6px;" title="Job Posting">
+         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;">
+           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+           <polyline points="15 3 21 3 21 9"></polyline>
+           <line x1="10" y1="14" x2="21" y2="3"></line>
+         </svg>
+       </a>`
+    : '';
+
+  tr.innerHTML = `
+    <td class="col-company">${escapeHTML(r.company)} ${jobLinkIcon}</td>
+    <td>
+      <div class="col-referrer">
+        <span class="ref-name">${escapeHTML(r.name)} ${linkedinIcon}</span>
+      </div>
+    </td>
+    <td><span class="status-badge ${statusInfo.class}">${statusInfo.text}</span></td>
+    <td class="col-email-text">${r.appliedEmail ? escapeHTML(r.appliedEmail) : '<span style="color: var(--text-muted); font-style: italic;">—</span>'}</td>
+    <td>
+      <div class="col-message-preview" onclick="copyMessage('${r.id}', this)" title="Click to copy message">
+        ${escapeHTML(r.message)}
+      </div>
+    </td>
+    <td style="color: var(--text-muted); font-size: 0.8rem;">${formattedDate}</td>
+    <td>
+      <div class="col-actions-wrapper">
+        <button class="card-btn btn-edit-row" style="width: 26px; height: 26px;" title="Edit details">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
+            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+          </svg>
+        </button>
+        <button class="card-btn btn-delete-row" style="width: 26px; height: 26px; color: var(--status-rejected-text);" title="Delete">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
+            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+          </svg>
+        </button>
+      </div>
+    </td>
+  `;
+  
+  tr.querySelector('.btn-edit-row').addEventListener('click', () => openModal(r.id));
+  tr.querySelector('.btn-delete-row').addEventListener('click', () => handleDelete(r.id));
+  
+  return tr;
+}
+
+window.toggleMessageExpand = function(id, btn) {
+  const msgEl = document.getElementById(`msg-${id}`);
+  if (!msgEl) return;
+  
+  const isExpanded = msgEl.classList.toggle('expanded');
+  btn.textContent = isExpanded ? 'Show Less' : 'Read More';
+};
 
 // ----------------------------------------------------
 // Form and Modal Actions

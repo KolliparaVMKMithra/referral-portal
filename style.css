@@ -554,8 +554,44 @@ h1, h2, h3, h4 {
 .message-content {
   white-space: pre-wrap;
   word-break: break-word;
-  line-height: 1.4;
+  line-height: 1.5;
+  font-size: 0.85rem;
   flex-grow: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 4.5em; /* 3 lines * 1.5 line-height */
+  transition: max-height 0.25s ease-out;
+}
+
+.message-content.expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  max-height: 1500px;
+}
+
+.btn-read-more {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: var(--transition-fast);
+  align-self: flex-start;
+  outline: none;
+}
+
+.btn-read-more:hover {
+  color: var(--secondary);
+  text-decoration: underline;
 }
 
 /* Card Footer / Actions */
@@ -847,4 +883,125 @@ h1, h2, h3, h4 {
     min-width: 0;
     width: 100%;
   }
+}
+
+/* View Toggle Controls */
+.view-toggle-wrapper {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.view-toggle-wrapper .btn-icon {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+}
+
+.view-toggle-wrapper .btn-icon:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+}
+
+.view-toggle-wrapper .btn-icon.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+}
+
+/* List/Table View styles */
+.referral-grid.list-view-mode {
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  margin-top: 1rem;
+}
+
+.referral-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.referral-table th, .referral-table td {
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.referral-table th {
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.referral-table tbody tr {
+  transition: var(--transition-normal);
+}
+
+.referral-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.referral-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.col-company {
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: 0.95rem;
+}
+
+.col-referrer {
+  font-weight: 500;
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.col-email-text {
+  font-size: 0.75rem;
+  color: var(--accent-cyan);
+}
+
+.col-message-preview {
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.col-message-preview:hover {
+  color: var(--primary);
+}
+
+.col-actions-wrapper {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Card layout compactness changes */
+.referral-card {
+  padding: 1.15rem;
 }
