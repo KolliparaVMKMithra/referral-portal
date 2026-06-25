@@ -35,6 +35,7 @@ const importFileInput = document.getElementById('importFileInput');
 const statTotalCount = document.getElementById('statTotalCount');
 const statCompaniesCount = document.getElementById('statCompaniesCount');
 const statSecuredCount = document.getElementById('statSecuredCount');
+const statReferredAppliedCount = document.getElementById('statReferredAppliedCount');
 const statAppliedCount = document.getElementById('statAppliedCount');
 const statInterviewingCount = document.getElementById('statInterviewingCount');
 const statOffersCount = document.getElementById('statOffersCount');
@@ -43,6 +44,7 @@ const statOffersCount = document.getElementById('statOffersCount');
 const statusConfig = {
   contacted: { text: 'Contacted', class: 'contacted' },
   secured: { text: 'Secured', class: 'secured' },
+  referred_applied: { text: 'Referred & Applied', class: 'referred-applied' },
   applied: { text: 'Applied', class: 'applied' },
   interviewing: { text: 'Interviewing', class: 'interviewing' },
   offer: { text: 'Offer Received', class: 'offer' },
@@ -155,6 +157,7 @@ function updateStats() {
   // Count by status
   const counts = {
     secured: 0,
+    referred_applied: 0,
     applied: 0,
     interviewing: 0,
     offer: 0
@@ -167,6 +170,7 @@ function updateStats() {
   });
   
   statSecuredCount.textContent = counts.secured;
+  statReferredAppliedCount.textContent = counts.referred_applied;
   statAppliedCount.textContent = counts.applied;
   statInterviewingCount.textContent = counts.interviewing;
   statOffersCount.textContent = counts.offer;

@@ -31,6 +31,9 @@
   --status-secured-bg: rgba(99, 102, 241, 0.1);
   --status-secured-text: #818cf8;
   
+  --status-ref-applied-bg: rgba(236, 72, 153, 0.15);
+  --status-ref-applied-text: #f472b6;
+  
   --status-applied-bg: rgba(6, 182, 212, 0.1);
   --status-applied-text: #22d3ee;
   
@@ -240,6 +243,7 @@ h1, h2, h3, h4 {
 .stat-card.stat-total::before { background: var(--primary); }
 .stat-card.stat-active::before { background: var(--accent-cyan); }
 .stat-card.stat-secured::before { background: var(--status-secured-text); }
+.stat-card.stat-ref-applied::before { background: var(--status-ref-applied-text); }
 .stat-card.stat-applied::before { background: var(--status-applied-text); }
 .stat-card.stat-interview::before { background: var(--status-interview-text); }
 .stat-card.stat-offer::before { background: var(--status-offer-text); }
@@ -484,6 +488,10 @@ h1, h2, h3, h4 {
 .status-badge.secured {
   background: var(--status-secured-bg);
   color: var(--status-secured-text);
+}
+.status-badge.referred-applied {
+  background: var(--status-ref-applied-bg);
+  color: var(--status-ref-applied-text);
 }
 .status-badge.applied {
   background: var(--status-applied-bg);
