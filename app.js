@@ -3,6 +3,11 @@
 // State Management
 let referrals = [];
 let viewMode = 'grid'; // 'grid' or 'list'
+let token = localStorage.getItem('referral_auth_token') || null;
+let userEmail = localStorage.getItem('referral_auth_email') || null;
+let isSignUpMode = false;
+
+const API_BASE = '';
 
 // DOM Elements
 const referralsGridContainer = document.getElementById('referralsGridContainer');
@@ -13,6 +18,19 @@ const modalTitleText = document.getElementById('modalTitleText');
 const toastContainer = document.getElementById('toastContainer');
 const btnGridView = document.getElementById('btnGridView');
 const btnListView = document.getElementById('btnListView');
+
+// Auth View Elements
+const authView = document.getElementById('authView');
+const mainDashboardView = document.getElementById('mainDashboardView');
+const authForm = document.getElementById('authForm');
+const authTitle = document.getElementById('authTitle');
+const authSubtitle = document.getElementById('authSubtitle');
+const txtAuthEmail = document.getElementById('txtAuthEmail');
+const txtAuthPassword = document.getElementById('txtAuthPassword');
+const btnAuthSubmit = document.getElementById('btnAuthSubmit');
+const btnAuthToggle = document.getElementById('btnAuthToggle');
+const authToggleText = document.getElementById('authToggleText');
+const btnLogout = document.getElementById('btnLogout');
 
 // Form Inputs
 const txtReferralId = document.getElementById('txtReferralId');
@@ -60,82 +78,205 @@ const statusConfig = {
 // Initialization
 // ----------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
-  loadData();
   setupEventListeners();
   
-  // Initialize view mode from local storage
+  // Load view mode setting
   const storedMode = localStorage.getItem('referral_view_mode');
   if (storedMode) {
-    setViewMode(storedMode);
-  } else {
-    setViewMode('grid');
+    viewMode = storedMode;
+    if (viewMode === 'grid') {
+      btnGridView.classList.add('active');
+      btnListView.classList.remove('active');
+      referralsGridContainer.classList.remove('list-view-mode');
+    } else {
+      btnGridView.classList.remove('active');
+      btnListView.classList.add('active');
+      referralsGridContainer.classList.add('list-view-mode');
+    }
   }
+  
+  checkAuth();
 });
 
 // ----------------------------------------------------
-// Data Actions
+// Authentication Flow
 // ----------------------------------------------------
-function loadData() {
-  const localData = localStorage.getItem('referral_tracker_data');
-  if (localData) {
-    try {
-      referrals = JSON.parse(localData);
-    } catch (e) {
-      console.error('Error parsing local storage data:', e);
-      referrals = [];
-    }
+function checkAuth() {
+  if (token) {
+    authView.style.display = 'none';
+    mainDashboardView.style.display = 'block';
+    
+    // Show authorized buttons in header
+    btnLogout.style.display = 'inline-flex';
+    btnExport.style.display = 'inline-flex';
+    btnImport.style.display = 'inline-flex';
+    btnNewReferral.style.display = 'inline-flex';
+    
+    // Fetch user referrals
+    fetchReferrals();
   } else {
-    // Seed with initial demo data if empty to wow the user on first load
-    referrals = [
-      {
-        id: 'seed-1',
-        company: 'Stripe',
-        name: 'Alex Rivera',
-        linkedin: 'https://linkedin.com/in/alex-rivera-stripe-demo',
-        jobLink: 'https://stripe.com/jobs/senior-core-platform',
-        status: 'secured',
-        appliedEmail: 'kolliparamithra84@gmail.com',
-        message: "Hey Sarah, I saw you recently joined the platform team at Stripe. I've been working on scaling distributed ledgers at my current firm and would love to chat briefly about how Stripe approaches real-time transactions. I'd appreciate it if you could share a referral for the Senior Core Platform role!",
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(), // 5 days ago
-        updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString()
-      },
-      {
-        id: 'seed-2',
-        company: 'Google',
-        name: 'Jessica Chen',
-        linkedin: 'https://linkedin.com/in/jessica-chen-google-demo',
-        jobLink: 'https://google.com/about/careers/devinfra',
-        status: 'interviewing',
-        appliedEmail: 'vmkmithra30@gmail.com',
-        message: "Hi Jess! Hope you're doing well. I noticed Google is expanding its developer infrastructure division in Seattle. Since we worked together on the Cloud Migration project at AWS, I know you have a great perspective there. If you think my skill set aligns, I'd be incredibly grateful for a referral to the DevInfra Systems Specialist position.",
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString(), // 14 days ago
-        updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString()
-      },
-      {
-        id: 'seed-3',
-        company: 'Netflix',
-        name: 'Marcus Vance',
-        linkedin: 'https://linkedin.com/in/marcus-vance-netflix-demo',
-        jobLink: '',
-        status: 'contacted',
-        appliedEmail: '',
-        message: "Hi Marcus, I've been following Netflix's open-source contributions to microservice orchestration for a while. I'm applying for the Senior Backend Platform engineer role. I would love to connect and get your advice on what Netflix looks for in senior systems talent, and possibly a referral. Thanks!",
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(), // 1 day ago
-        updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString()
-      }
-    ];
-    saveData();
+    authView.style.display = 'flex';
+    mainDashboardView.style.display = 'none';
+    
+    // Hide authorized buttons in header
+    btnLogout.style.display = 'none';
+    btnExport.style.display = 'none';
+    btnImport.style.display = 'none';
+    btnNewReferral.style.display = 'none';
+    
+    referrals = [];
+    updateUI();
   }
 }
 
-function saveData() {
-  localStorage.setItem('referral_tracker_data', JSON.stringify(referrals));
+function handleAuthToggle() {
+  isSignUpMode = !isSignUpMode;
+  if (isSignUpMode) {
+    authTitle.textContent = 'Create an Account';
+    authSubtitle.textContent = 'Sign up to track and access your referrals on any device';
+    btnAuthSubmit.textContent = 'Sign Up';
+    authToggleText.textContent = 'Already have an account?';
+    btnAuthToggle.textContent = 'Sign In';
+  } else {
+    authTitle.textContent = 'Sign In to Referral Tracker';
+    authSubtitle.textContent = 'Enter your credentials to access your dashboard';
+    btnAuthSubmit.textContent = 'Sign In';
+    authToggleText.textContent = "Don't have an account?";
+    btnAuthToggle.textContent = 'Sign Up';
+  }
+  txtAuthPassword.value = '';
+}
+
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  const email = txtAuthEmail.value.trim();
+  const password = txtAuthPassword.value;
+  
+  if (!email || !password) {
+    showToast('Please fill in all fields', 'error');
+    return;
+  }
+  
+  const endpoint = isSignUpMode ? '/api/auth/signup' : '/api/auth/login';
+  btnAuthSubmit.disabled = true;
+  btnAuthSubmit.textContent = isSignUpMode ? 'Creating Account...' : 'Signing In...';
+  
+  try {
+    const res = await fetch(API_BASE + endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Authentication failed');
+    }
+    
+    // Save Token & Email
+    token = data.token;
+    userEmail = data.email;
+    localStorage.setItem('referral_auth_token', token);
+    localStorage.setItem('referral_auth_email', userEmail);
+    
+    showToast(isSignUpMode ? 'Account created successfully!' : 'Signed in successfully!', 'success');
+    
+    // Reset forms
+    authForm.reset();
+    
+    // Check for offline LocalStorage migration
+    await migrateLocalData();
+    
+    checkAuth();
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btnAuthSubmit.disabled = false;
+    btnAuthSubmit.textContent = isSignUpMode ? 'Sign Up' : 'Sign In';
+  }
+}
+
+function handleLogout() {
+  token = null;
+  userEmail = null;
+  localStorage.removeItem('referral_auth_token');
+  localStorage.removeItem('referral_auth_email');
+  showToast('Logged out successfully', 'success');
+  checkAuth();
+}
+
+// Migrate old client-only localStorage data to the new server database on first login
+async function migrateLocalData() {
+  const localData = localStorage.getItem('referral_tracker_data');
+  if (!localData) return;
+  
+  try {
+    const parsed = JSON.parse(localData);
+    // Ignore seed data IDs and filter out empty arrays
+    const toMigrate = parsed.filter(r => r.id && !r.id.startsWith('seed-'));
+    
+    if (toMigrate.length > 0) {
+      const confirmSync = confirm(`We found ${toMigrate.length} offline referral records stored in this browser. Do you want to sync them to your cloud account?`);
+      if (confirmSync) {
+        const res = await fetch(API_BASE + '/api/referrals/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(toMigrate)
+        });
+        
+        if (res.ok) {
+          showToast('Offline referrals successfully synced!', 'success');
+        } else {
+          console.warn('Failed to migrate local data to server');
+        }
+      }
+    }
+    // Clean local client storage so it doesn't trigger prompt again
+    localStorage.removeItem('referral_tracker_data');
+  } catch (err) {
+    console.error('Data migration error:', err);
+  }
+}
+
+// ----------------------------------------------------
+// API Client CRUD Actions
+// ----------------------------------------------------
+async function fetchReferrals() {
+  try {
+    const res = await fetch(API_BASE + '/api/referrals', {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (res.status === 401 || res.status === 403) {
+      handleLogout();
+      return;
+    }
+    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to load referrals');
+    }
+    
+    referrals = data;
+    updateUI();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
 }
 
 // ----------------------------------------------------
 // Event Listeners Setup
 // ----------------------------------------------------
 function setupEventListeners() {
+  // Auth Form Events
+  authForm.addEventListener('submit', handleAuthSubmit);
+  btnAuthToggle.addEventListener('click', handleAuthToggle);
+  btnLogout.addEventListener('click', handleLogout);
+
   // Modal toggling
   btnNewReferral.addEventListener('click', () => openModal());
   btnEmptyStateAdd.addEventListener('click', () => openModal());
@@ -533,7 +674,7 @@ function closeModal() {
   referralModal.classList.remove('active');
 }
 
-function handleFormSubmit(e) {
+async function handleFormSubmit(e) {
   e.preventDefault();
   
   const id = txtReferralId.value;
@@ -550,57 +691,74 @@ function handleFormSubmit(e) {
     return;
   }
   
-  const now = new Date().toISOString();
+  const payload = {
+    company: companyVal,
+    name: nameVal,
+    linkedin: linkedinVal,
+    jobLink: jobLinkVal,
+    status: statusVal,
+    appliedEmail: appliedEmailVal,
+    message: messageVal
+  };
   
-  if (id) {
-    // Edit existing referral
-    const index = referrals.findIndex(r => r.id === id);
-    if (index !== -1) {
-      referrals[index] = {
-        ...referrals[index],
-        company: companyVal,
-        name: nameVal,
-        linkedin: linkedinVal,
-        jobLink: jobLinkVal,
-        status: statusVal,
-        appliedEmail: appliedEmailVal,
-        message: messageVal,
-        updatedAt: now
-      };
-      showToast('Referral updated successfully!', 'success');
+  try {
+    let res;
+    if (id) {
+      // Edit existing referral
+      res = await fetch(`${API_BASE}/api/referrals/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+    } else {
+      // Add new referral
+      res = await fetch(`${API_BASE}/api/referrals`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
     }
-  } else {
-    // Add new referral
-    const newReferral = {
-      id: generateUUID(),
-      company: companyVal,
-      name: nameVal,
-      linkedin: linkedinVal,
-      jobLink: jobLinkVal,
-      status: statusVal,
-      appliedEmail: appliedEmailVal,
-      message: messageVal,
-      createdAt: now,
-      updatedAt: now
-    };
-    referrals.push(newReferral);
-    showToast('Referral added successfully!', 'success');
+    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to save referral');
+    }
+    
+    showToast(id ? 'Referral updated successfully!' : 'Referral added successfully!', 'success');
+    closeModal();
+    fetchReferrals();
+  } catch (err) {
+    showToast(err.message, 'error');
   }
-  
-  saveData();
-  closeModal();
-  updateUI();
 }
 
-function handleDelete(id) {
+async function handleDelete(id) {
   const ref = referrals.find(r => r.id === id);
   if (!ref) return;
   
   if (confirm(`Are you sure you want to delete the referral from ${ref.name} at ${ref.company}?`)) {
-    referrals = referrals.filter(r => r.id !== id);
-    saveData();
-    updateUI();
-    showToast('Referral deleted successfully', 'success');
+    try {
+      const res = await fetch(`${API_BASE}/api/referrals/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete referral');
+      }
+      
+      showToast('Referral deleted successfully', 'success');
+      fetchReferrals();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
   }
 }
 
@@ -616,13 +774,15 @@ window.copyMessage = function(id, btnElement) {
     
     // Simple micro-animation on copy button
     const svg = btnElement.querySelector('svg');
-    svg.style.transform = 'scale(1.2)';
-    svg.style.color = 'var(--status-offer-text)';
-    
-    setTimeout(() => {
-      svg.style.transform = 'scale(1)';
-      svg.style.color = '';
-    }, 500);
+    if (svg) {
+      svg.style.transform = 'scale(1.2)';
+      svg.style.color = 'var(--status-offer-text)';
+      
+      setTimeout(() => {
+        svg.style.transform = 'scale(1)';
+        svg.style.color = '';
+      }, 500);
+    }
   }).catch(err => {
     console.error('Failed to copy text: ', err);
     showToast('Could not copy message automatically', 'error');
@@ -674,48 +834,50 @@ function exportData() {
   showToast('JSON exported successfully!', 'success');
 }
 
-function importData(e) {
+async function importData(e) {
   const file = e.target.files[0];
   if (!file) return;
   
   const reader = new FileReader();
-  reader.onload = function(evt) {
+  reader.onload = async function(evt) {
     try {
       const imported = JSON.parse(evt.target.result);
       
       // Simple validation of structure
       if (Array.isArray(imported) && imported.every(item => item.company && item.name && item.message)) {
-        if (confirm(`Do you want to restore ${imported.length} referrals? This will replace your current browser tracker data.`)) {
-          // Standardize ID fields if missing or custom format
-          referrals = imported.map(item => ({
-            id: item.id || generateUUID(),
-            company: item.company,
-            name: item.name,
-            linkedin: item.linkedin || '',
-            status: item.status || 'contacted',
-            message: item.message,
-            createdAt: item.createdAt || new Date().toISOString(),
-            updatedAt: item.updatedAt || new Date().toISOString()
-          }));
-          saveData();
-          updateUI();
-          showToast('Data imported successfully!', 'success');
+        if (confirm(`Do you want to upload ${imported.length} referrals from this backup?`)) {
+          btnExport.disabled = true; // Temporary loading visual indicator
+          
+          const res = await fetch(API_BASE + '/api/referrals/sync', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(imported)
+          });
+          
+          if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.error || 'Failed to sync imported referrals');
+          }
+          
+          showToast('Data imported successfully to cloud database!', 'success');
+          fetchReferrals();
         }
       } else {
         showToast('Invalid file structure. Must contain company, name, and message details.', 'error');
       }
     } catch (err) {
-      showToast('Error parsing file. Ensure it is a valid JSON backup.', 'error');
+      showToast(err.message || 'Error parsing file. Ensure it is a valid JSON backup.', 'error');
       console.error(err);
+    } finally {
+      btnExport.disabled = false;
     }
   };
   reader.readAsText(file);
   // Reset file input value so same file can be uploaded again
   importFileInput.value = '';
-}
-
-function generateUUID() {
-  return 'ref-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now().toString(36);
 }
 
 function escapeHTML(str) {
